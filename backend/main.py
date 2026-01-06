@@ -7,9 +7,15 @@ from fastapi import (
 )
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
-from mangum import Mangum
 
-from auth import get_current_user
+from auth import (
+    get_current_user,
+    cognito_signup,
+    cognito_confirm_signup,
+    cognito_login,
+    cognito_forgot_password,
+    cognito_confirm_forgot_password,
+)
 from dynamodb import (
     save_profile,
     get_profile,
@@ -19,6 +25,11 @@ from models import (
     ProfileCreate,
     ProfileUpdate,
     ProfileResponse,
+    SignupRequest,
+    LoginRequest,
+    ConfirmSignupRequest,
+    ForgotPasswordRequest,
+    ConfirmForgotPasswordRequest
 )
 
 import json
@@ -26,13 +37,49 @@ from typing import Optional
 
 
 app = FastAPI()
-handler = Mangum(app, lifespan="off")
 
 
 @app.get("/health")
 def health() -> dict:
     print("Health check")
     return {"status": "ok"}
+
+@app.post("/auth/signup")
+def signup(data: SignupRequest):
+    return cognito_signup(
+        data.email,
+        data.password
+    )
+
+
+@app.post("/auth/confirm-signup")
+def confirm_signup(data: ConfirmSignupRequest):
+    return cognito_confirm_signup(
+        data.email,
+        data.otp,
+    )
+
+
+@app.post("/auth/login")
+def login(data: LoginRequest):
+    return cognito_login(
+        data.email,
+        data.password,
+    )
+
+
+@app.post("/auth/forgot-password")
+def forgot_password(data: ForgotPasswordRequest):
+    return cognito_forgot_password(data.email)
+
+
+@app.post("/auth/confirm-forgot-password")
+def confirm_forgot_password(data: ConfirmForgotPasswordRequest):
+    return cognito_confirm_forgot_password(
+        data.email,
+        data.code,
+        data.new_password,
+    )
 
 
 @app.post("/profile/create", response_model=ProfileResponse)
@@ -70,6 +117,7 @@ def update_profile(
 def read_profile(
     user: dict = Depends(get_current_user),
 ) -> ProfileResponse:
+    print("---------",user)
     return get_profile(user["sub"])
 
 
