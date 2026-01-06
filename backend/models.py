@@ -2,6 +2,25 @@ from pydantic import BaseModel, Field, validator
 from typing import Optional
 from datetime import date
 
+class SignupRequest(BaseModel):
+    email: str
+    password: str
+
+class ConfirmSignupRequest(BaseModel):
+    email: str
+    otp: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ConfirmForgotPasswordRequest(BaseModel):
+    email: str
+    code: str
+    new_password: str
 
 class _ProfileBase(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
