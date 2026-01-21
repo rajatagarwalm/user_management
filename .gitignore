@@ -1,3 +1,17 @@
 frontend/venv
 frontend/__pycache__
 frontend/.env
+# Terraform
+user_management_infra/.terraform/
+user_management_infra/*.tfstate*
+user_management_infra/.terraform.lock.hcl
+
+# Lambda artifacts (DO NOT COMMIT)
+user_management_infra/lambda.zip
+user_management_infra/lambda_layer.zip
+user_management_infra/lambda_build/
+user_management_infra/lambda_layer/
+
+# Python
+__pycache__/
+*.pyc

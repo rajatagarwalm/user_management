@@ -1,0 +1,79 @@
+name: Terraform Deploy (Build + Apply)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Build Lambda Layer
+        run: |
+          rm -rf user_management_infra/lambda_layer user_management_infra/lambda_layer.zip
+          mkdir -p user_management_infra/lambda_layer/python
+
+          docker run --rm \
+            --entrypoint /bin/bash \
+            -v "$PWD":/var/task \
+            public.ecr.aws/lambda/python:3.10 \
+            -c "pip install -r backend/requirements.txt -t user_management_infra/lambda_layer/python"
+
+          cd user_management_infra/lambda_layer
+          zip -r ../lambda_layer.zip python
+          cd -
+
+      - name: Build Lambda Code
+        run: |
+          rm -rf user_management_infra/lambda_build user_management_infra/lambda.zip
+          mkdir user_management_infra/lambda_build
+
+          cp backend/lambda_function.py user_management_infra/lambda_build/
+          cp backend/main.py user_management_infra/lambda_build/
+          cp backend/logger.py user_management_infra/lambda_build/
+          cp backend/dynamodb.py user_management_infra/lambda_build/
+          cp backend/models.py user_management_infra/lambda_build/
+
+          cd user_management_infra/lambda_build
+          zip -r ../lambda.zip .
+          cd -
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::698528536674:role/TerraformProdDeployRole
+          aws-region: ap-south-1
+
+      - name: Terraform Init
+        run: |
+          cd user_management_infra
+          terraform init
+
+      - name: Terraform Validate
+        run: |
+          cd user_management_infra
+          terraform validate
+
+      - name: Terraform Apply
+        run: |
+          cd user_management_infra
+          terraform apply -auto-approve
