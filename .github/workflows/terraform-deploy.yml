@@ -1,9 +1,7 @@
 name: Terraform Deploy (Build + Apply)
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   terraform:
